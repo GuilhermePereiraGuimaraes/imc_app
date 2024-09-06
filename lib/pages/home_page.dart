@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:imc_app/services/app_storage.dart';
 import 'package:imc_app/services/calcular_imc.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,6 +13,26 @@ class _HomePageState extends State<HomePage> {
   String result = "esperando...";
   var pesoController = TextEditingController(text: "");
   var alturaController = TextEditingController(text: "");
+  double peso = 0;
+  double altura = 0;
+  AppStorage storage = AppStorage();
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    carregarDados();
+  }
+
+  void carregarDados() async {
+    result =
+        await storage.getIMC() == "" ? "esperando..." : await storage.getIMC();
+    peso = await storage.getPeso();
+    altura = await storage.getAltura();
+    pesoController.text = peso == 0 ? "" : peso.toString();
+    alturaController.text = altura == 0 ? "" : altura.toString();
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +57,7 @@ class _HomePageState extends State<HomePage> {
                 child: TextField(
                   controller: pesoController,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(hintText: "Peso"),
+                  decoration: const InputDecoration(hintText: "Peso"),
                 ),
               ),
               Container(
@@ -51,13 +72,23 @@ class _HomePageState extends State<HomePage> {
                 height: 20,
               ),
               TextButton(
-                  onPressed: () {
+                  onPressed: () async {
                     try {
-                      setState(() {
-                        result = CalcularImc.calcular(
-                            double.parse(pesoController.text),
-                            double.parse(alturaController.text));
-                      });
+                      result = CalcularImc.calcular(
+                          double.parse(pesoController.text),
+                          double.parse(alturaController.text));
+                      await storage.setPeso(double.parse(pesoController.text));
+                      await storage
+                          .setAltura(double.parse(alturaController.text));
+                      await storage.setIMC(result);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text(
+                          "Dados Salvos!",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.green,
+                      ));
+                      carregarDados();
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         content: Text(
@@ -87,13 +118,13 @@ class _HomePageState extends State<HomePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  const Text(
                     "Resultado: ",
                     style: TextStyle(fontSize: 20),
                   ),
                   Text(
                     result,
-                    style: TextStyle(fontSize: 20),
+                    style: const TextStyle(fontSize: 20),
                   ),
                 ],
               )
